@@ -3,6 +3,11 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
+)
+
+var (
+	ErrRecordNotFound = errors.New("resource not found")
 )
 
 type Storage struct {
@@ -11,15 +16,17 @@ type Storage struct {
 }
 
 type Posts interface {
-	Create(context.Context) error
+	Create(context.Context, *Post) error
+	GetById(context.Context, int64) (*Post, error)
 }
 
 type Users interface {
-	Create(context.Context) error
+	Create(context.Context, *User) error
 }
 
-func NewPostgresStorage(db *sql.DB) Storage {
+func NewStorage(db *sql.DB) Storage {
 	return Storage{
-		
+		Posts: &PostStore{db},
+		Users: &UsersStore{db},
 	}
 }
