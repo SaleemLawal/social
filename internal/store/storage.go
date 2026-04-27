@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 )
 
 var (
 	ErrRecordNotFound = errors.New("resource not found")
+	QUERY_TIMEOUT_DURATION = 5 * time.Second
 )
 
 type Storage struct {

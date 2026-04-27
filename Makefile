@@ -1,8 +1,8 @@
 include .env
 MIGRATIONS_PATH= ./cmd/migrate/migrations
 
-.PHONY: migrate-create
-migrate-create:
+.PHONY: migration
+migration:
 	@echo "Creating migration file..."
 	@migrate create -seq -ext sql -dir $(MIGRATIONS_PATH) $(filter-out $@,$(MAKECMDGOALS))
 
