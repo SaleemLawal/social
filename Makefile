@@ -26,3 +26,8 @@ migrate-force:
 seed:
 	@echo "Seeding database..."
 	@DB_URL=${DB_URL} go run cmd/migrate/seed/main.go
+
+.PHONY: run
+run: 
+	@echo "Starting server..."
+	@docker compose up -d --build && docker compose logs -f api

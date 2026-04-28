@@ -10,8 +10,6 @@ import (
 	"github.com/saleemlawal/social/internal/store"
 )
 
-
-
 type application struct {
 	config config
 	store store.Storage
@@ -51,6 +49,15 @@ func (app *application) mount() http.Handler {
 				r.Patch("/", app.updatePostHandler)
 				r.Delete("/", app.deletePostHandler)
 				r.Post("/comments", app.createCommentHandler)
+			})
+		})
+
+		r.Route("/users", func (r chi.Router) {
+			r.Route("/{userId}", func (r chi.Router) {
+				r.Use(app.usersContextMiddleware)
+				r.Get("/", app.getUserHandler)
+				r.Put("/follow", app.followUserHandler)
+				r.Put("/unfollow", app.unfollowUserHandler)
 			})
 		})
 	})
