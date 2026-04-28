@@ -5,6 +5,12 @@ RUN go mod download && go mod verify
 COPY . .
 RUN CGO_ENABLED=0 go build -o /out/api ./cmd/api
 
+FROM golang:1.25.6-alpine AS dev
+RUN go install github.com/air-verse/air@latest
+WORKDIR /app
+EXPOSE 8080
+CMD ["air", "-c", ".air.toml"]
+
 FROM alpine:3.20 AS runtime
 RUN adduser -D -u 10001 app
 WORKDIR /app
