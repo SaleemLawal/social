@@ -21,3 +21,8 @@ migrate-force:
 	@echo "Migrating force..."
 	@migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) force $(filter-out $@,$(MAKECMDGOALS))
 	@make migrate-up
+
+.PHONY: seed
+seed:
+	@echo "Seeding database..."
+	@DB_URL=${DB_URL} go run cmd/migrate/seed/main.go

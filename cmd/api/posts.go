@@ -64,7 +64,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
-	post := getPostFromCtx(r)
+	post, _ := getPostFromCtx(r)
 	comments, err := app.store.Comments.GetByPostId(r.Context(), post.ID)
 	if err != nil {
 		app.internalServerError(w, r, err)
@@ -79,7 +79,7 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
-	post := getPostFromCtx(r)
+	post, _ := getPostFromCtx(r)
 
 	var payload UpdatePostPayload
 
@@ -161,7 +161,7 @@ func (app *application) postsContextMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func getPostFromCtx(r *http.Request) *store.Post {
-	post, _ := r.Context().Value(postContextKey).(*store.Post)
-	return post
+func getPostFromCtx(r *http.Request) (*store.Post, bool) {
+	post, ok := r.Context().Value(postContextKey).(*store.Post)
+	return post, ok
 }
