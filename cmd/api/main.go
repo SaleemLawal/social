@@ -1,13 +1,13 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/saleemlawal/social/internal/db"
 	"github.com/saleemlawal/social/internal/env"
 	"github.com/saleemlawal/social/internal/store"
+	"go.uber.org/zap"
 )
 
 const version = "0.0.2"
@@ -30,8 +30,14 @@ const version = "0.0.2"
 // @name						Authorization
 // @description				Type "Bearer" followed by a space and JWT token.
 func main() {
+	// logger := zap.Must(zap.NewProduction()).Sugar()
+	loggerConfig := zap.NewProductionConfig()
+	loggerConfig.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
+	logger := zap.Must(loggerConfig.Build()).Sugar()
+	defer logger.Sync()
+
 	if err := godotenv.Load(); err != nil {
-		log.Println("no .env file found, relying on process environment")
+		logger.Warn("no .env file found, relying on process environment")
 	}
 
 	cfg := &config{
@@ -49,19 +55,20 @@ func main() {
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 
 	if err != nil {
-		log.Panic(err)
+		logger.Fatal(err)
 	}
 
 	defer db.Close()
-	log.Printf("database connection pool established")
+	logger.Info("database connection pool established")
 
 	store := store.NewStorage(db)
 	app := &application{
 		config: *cfg,
 		store:  store,
+		logger: logger,
 	}
 
 	mux := app.mount()
 
-	log.Fatal(app.run(mux))
+	logger.Fatal(app.run(mux))
 }
