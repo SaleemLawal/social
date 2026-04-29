@@ -36,3 +36,8 @@ run:
 format:
 	@echo "Formatting code..."
 	@gofmt -w .
+
+.PHONY: swagger
+swagger:
+	@echo "Generating swagger documentation..."
+	@swag init -g ./api/main.go -d cmd,internal && swag fmt 
