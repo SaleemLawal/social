@@ -7,13 +7,13 @@ import (
 )
 
 type Comment struct {
-	ID int64 `json:"id"`
-	Content string `json:"content"`
-	PostID int64 `json:"post_id"`
-	UserID int64 `json:"user_id"`
+	ID        int64     `json:"id"`
+	Content   string    `json:"content"`
+	PostID    int64     `json:"post_id"`
+	UserID    int64     `json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
-	User User `json:"user"`
-	Likes int `json:"likes"`
+	User      User      `json:"user"`
+	Likes     int       `json:"likes"`
 }
 
 type CommentStore struct {
@@ -41,13 +41,13 @@ func (s *CommentStore) GetByPostId(ctx context.Context, postId int64) ([]*Commen
 		var c Comment
 		c.User = User{}
 		if err := rows.Scan(
-			&c.ID, 
-			&c.Content, 
-			&c.PostID, 
-			&c.UserID, 
-			&c.CreatedAt, 
-			&c.User.Username, 
-			&c.User.ID, 
+			&c.ID,
+			&c.Content,
+			&c.PostID,
+			&c.UserID,
+			&c.CreatedAt,
+			&c.User.Username,
+			&c.User.ID,
 			&c.User.Email,
 		); err != nil {
 			return nil, err
@@ -72,7 +72,7 @@ func (s *CommentStore) Create(ctx context.Context, comment *Comment) error {
 	defer cancel()
 
 	if err := s.db.QueryRowContext(ctx, query, comment.Content, comment.PostID, comment.UserID, comment.Likes).Scan(
-		&comment.ID, 
+		&comment.ID,
 		&comment.CreatedAt,
 		&comment.UserID,
 		&comment.User.Username,

@@ -12,25 +12,25 @@ import (
 
 type application struct {
 	config config
-	store store.Storage
+	store  store.Storage
 }
 
 type config struct {
 	addr string
-	db dbConfig
-	env string
+	db   dbConfig
+	env  string
 }
 
 type dbConfig struct {
-	addr string
+	addr         string
 	maxOpenConns int
 	maxIdleConns int
-	maxIdleTime time.Duration
+	maxIdleTime  time.Duration
 }
 
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
-	
+
 	r.Use(middleware.Logger)
 	r.Use(middleware.AllowContentType("application/json", "text/xml"))
 	r.Use(middleware.RequestID)
@@ -40,10 +40,10 @@ func (app *application) mount() http.Handler {
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthcheckHandler)
-		r.Route("/posts", func (r chi.Router) {
+		r.Route("/posts", func(r chi.Router) {
 			r.Post("/", app.createPostHandler)
-			
-			r.Route("/{postId}", func (r chi.Router) {
+
+			r.Route("/{postId}", func(r chi.Router) {
 				r.Use(app.postsContextMiddleware)
 				r.Get("/", app.getPostHandler)
 				r.Patch("/", app.updatePostHandler)
@@ -52,15 +52,15 @@ func (app *application) mount() http.Handler {
 			})
 		})
 
-		r.Route("/users", func (r chi.Router) {
-			r.Route("/{userId}", func (r chi.Router) {
+		r.Route("/users", func(r chi.Router) {
+			r.Route("/{userId}", func(r chi.Router) {
 				r.Use(app.usersContextMiddleware)
 				r.Get("/", app.getUserHandler)
 				r.Put("/follow", app.followUserHandler)
 				r.Put("/unfollow", app.unfollowUserHandler)
 			})
 
-			r.Group(func (r chi.Router) {
+			r.Group(func(r chi.Router) {
 				r.Get("/feeds", app.getFeedsHandler)
 			})
 		})

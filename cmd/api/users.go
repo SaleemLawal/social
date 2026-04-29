@@ -11,6 +11,7 @@ import (
 )
 
 type UserKey string
+
 const UserKeyContext UserKey = "user"
 
 type FollowUser struct {
@@ -45,7 +46,7 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 			app.notFoundError(w, r, err)
 		default:
 			app.internalServerError(w, r, err)
-		}		
+		}
 		return
 	}
 
@@ -57,7 +58,7 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
-		// get the user id from the url
+	// get the user id from the url
 	unFollowedUser := getUserFromCtx(r)
 
 	// revert back to auth user
@@ -111,7 +112,7 @@ func (app *application) usersContextMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func getUserFromCtx(r *http.Request) (*store.User) {
+func getUserFromCtx(r *http.Request) *store.User {
 	user, _ := r.Context().Value(UserKeyContext).(*store.User)
 	return user
 }

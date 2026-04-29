@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	conn, err := db.New(os.Getenv("DB_URL"), 3, 3, 5 * time.Second)
+	conn, err := db.New(os.Getenv("DB_URL"), 3, 3, 5*time.Second)
 	if err != nil {
 		log.Fatal(err)
 	}

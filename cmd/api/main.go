@@ -14,13 +14,13 @@ const version = "0.0.1"
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-	log.Println("no .env file found, relying on process environment")
+		log.Println("no .env file found, relying on process environment")
 	}
 
 	cfg := &config{
 		addr: ":" + env.GetString("PORT", "3000"),
 		db: dbConfig{
-			addr: env.GetString("DB_URL", "postgres://admin:adminpassword@localhost/social?sslmode=disable"),
+			addr:         env.GetString("DB_URL", "postgres://admin:adminpassword@localhost/social?sslmode=disable"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleTime:  time.Duration(env.GetInt("DB_MAX_OPEN_CONNS", 30)),
@@ -40,7 +40,7 @@ func main() {
 	store := store.NewStorage(db)
 	app := &application{
 		config: *cfg,
-		store: store,
+		store:  store,
 	}
 
 	mux := app.mount()

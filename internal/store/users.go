@@ -9,19 +9,18 @@ import (
 	"github.com/lib/pq"
 )
 
-
 type User struct {
-	ID int64 `json:"id"`
-	Username string `json:"username"`
-	Email string `json:"email"`
-	Password string `json:"-"`
+	ID        int64     `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Password  string    `json:"-"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type Follower struct {
-	UserId int64 `json:"user_id"`
-	FollowerId int64 `json:"follower_id"`
-	CreatedAt time.Time `json:"created_at"`
+	UserId     int64     `json:"user_id"`
+	FollowerId int64     `json:"follower_id"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type UserStore struct {
@@ -29,7 +28,7 @@ type UserStore struct {
 }
 
 func (s *UserStore) Create(ctx context.Context, user *User) error {
-	var query string= `
+	var query string = `
 		INSERT INTO users (username, password, email) VALUES($1, $2, $3) RETURNING id, created_at
 	`
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
@@ -39,7 +38,7 @@ func (s *UserStore) Create(ctx context.Context, user *User) error {
 		return err
 	}
 
-	return nil;
+	return nil
 }
 
 func (s *UserStore) GetById(ctx context.Context, userId int64) (*User, error) {
@@ -52,10 +51,10 @@ func (s *UserStore) GetById(ctx context.Context, userId int64) (*User, error) {
 	var user = &User{}
 	if err := s.db.QueryRowContext(ctx, query, userId).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt); err != nil {
 		switch err {
-			case sql.ErrNoRows:
-				return nil, ErrRecordNotFound
-			default:
-				return nil, err
+		case sql.ErrNoRows:
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
 		}
 	}
 	return user, nil
@@ -71,7 +70,7 @@ func (s *UserStore) Follow(ctx context.Context, followerId, userId int64) error 
 
 	_, err := s.db.ExecContext(ctx, query, userId, followerId)
 	if err != nil {
-  		var pqErr *pq.Error
+		var pqErr *pq.Error
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			return ErrRecordNotFound
@@ -81,7 +80,7 @@ func (s *UserStore) Follow(ctx context.Context, followerId, userId int64) error 
 			return err
 		}
 	}
-return nil
+	return nil
 }
 
 func (s *UserStore) Unfollow(ctx context.Context, followerId, userId int64) error {

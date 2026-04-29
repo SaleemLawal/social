@@ -8,7 +8,7 @@ import (
 
 type CreateCommentPayload struct {
 	Content string `json:"content" validate:"required,min=10,max=1000"`
-	Likes int `json:"likes" validate:"omitempty,min=0"`
+	Likes   int    `json:"likes" validate:"omitempty,min=0"`
 }
 
 func (app *application) createCommentHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,9 +33,9 @@ func (app *application) createCommentHandler(w http.ResponseWriter, r *http.Requ
 
 	comment := &store.Comment{
 		Content: payload.Content,
-		Likes: payload.Likes,
-		PostID: post.ID,
-		UserID: 1, // TODO: Change after authentication
+		Likes:   payload.Likes,
+		PostID:  post.ID,
+		UserID:  1, // TODO: Change after authentication
 	}
 
 	if err := app.store.Comments.Create(r.Context(), comment); err != nil {

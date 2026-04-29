@@ -10,19 +10,18 @@ import (
 	"github.com/saleemlawal/social/internal/store"
 )
 
-
 type contextKey string
 
 const postContextKey contextKey = "post"
 
 type CreatePostPayload struct {
-	Title string `json:"title" validate:"required,min=3,max=255"`
-	Content string `json:"content" validate:"required,min=10,max=1000"`
-	Tags []string `json:"tags" validate:"required,min=1,max=5"`
+	Title   string   `json:"title" validate:"required,min=3,max=255"`
+	Content string   `json:"content" validate:"required,min=10,max=1000"`
+	Tags    []string `json:"tags" validate:"required,min=1,max=5"`
 }
 
 type UpdatePostPayload struct {
-	Title *string `json:"title" validate:"omitempty,min=3,max=255"`
+	Title   *string `json:"title" validate:"omitempty,min=3,max=255"`
 	Content *string `json:"content" validate:"omitempty,min=10,max=1000"`
 }
 
@@ -42,13 +41,12 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	userId := 1
 
 	post := &store.Post{
-		Title: payload.Title,
+		Title:   payload.Title,
 		Content: payload.Content,
-		Tags: payload.Tags,
+		Tags:    payload.Tags,
 		// TODO: Change after authentication
 		UserID: int64(userId),
 	}
-	
 
 	ctx := r.Context()
 
