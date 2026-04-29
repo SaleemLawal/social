@@ -31,3 +31,8 @@ seed:
 run: 
 	@echo "Starting server..."
 	@docker compose up -d --build && docker compose logs -f api
+
+.PHONY: format
+format:
+	@echo "Formatting code..."
+	@gofmt -w .
