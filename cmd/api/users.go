@@ -18,6 +18,20 @@ type FollowUser struct {
 	UserId int64 `json:"user_id"`
 }
 
+// getUserHandler godoc
+//
+//	@Summary		Get a user by ID
+//	@Description	Fetches a user profile by their ID
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int	true	"User ID"
+//	@Success		200	{object}	store.User
+//	@Failure		400	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/users/{id} [get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromCtx(r)
 
@@ -27,6 +41,22 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// followUserHandler godoc
+//
+//	@Summary		Follow a user
+//	@Description	Adds the authenticated user as a follower of the specified user
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	int			true	"User ID to follow"
+//	@Param			body	body	FollowUser	true	"Follower user ID"
+//	@Success		204		"No Content"
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		409		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/users/{id}/follow [put]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
 	// get the user id from the url
 	followerUser := getUserFromCtx(r)
@@ -57,6 +87,22 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 
 }
 
+// unfollowUserHandler godoc
+//
+//	@Summary		Unfollow a user
+//	@Description	Removes the authenticated user as a follower of the specified user
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	int			true	"User ID to unfollow"
+//	@Param			body	body	FollowUser	true	"Follower user ID"
+//	@Success		204		"No Content"
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		409		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/users/{id}/unfollow [put]
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
 	// get the user id from the url
 	unFollowedUser := getUserFromCtx(r)
@@ -88,7 +134,7 @@ func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Reque
 
 func (app *application) usersContextMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userId, err := strconv.ParseInt(chi.URLParam(r, "userId"), 10, 64)
+		userId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 		if err != nil {
 			app.badRequestError(w, r, err)
 			return
@@ -103,8 +149,8 @@ func (app *application) usersContextMiddleware(next http.Handler) http.Handler {
 				app.notFoundError(w, r, err)
 			default:
 				app.internalServerError(w, r, err)
-				return
 			}
+			return
 		}
 
 		ctx = context.WithValue(ctx, UserKeyContext, user)

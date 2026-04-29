@@ -25,6 +25,19 @@ type UpdatePostPayload struct {
 	Content *string `json:"content" validate:"omitempty,min=10,max=1000"`
 }
 
+// createPostHandler godoc
+//
+//	@Summary		Create a post
+//	@Description	Creates a new post for the authenticated user
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		CreatePostPayload	true	"Post payload"
+//	@Success		201		{object}	store.Post
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts [post]
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
 	var payload CreatePostPayload
 
@@ -61,6 +74,19 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// getPostHandler godoc
+//
+//	@Summary		Get a post
+//	@Description	Fetches a post by its ID, including its comments
+//	@Tags			posts
+//	@Produce		json
+//	@Param			postId	path		int	true	"Post ID"
+//	@Success		200		{object}	store.Post
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postId} [get]
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	post, _ := getPostFromCtx(r)
 	comments, err := app.store.Comments.GetByPostId(r.Context(), post.ID)
@@ -76,6 +102,21 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// updatePostHandler godoc
+//
+//	@Summary		Update a post
+//	@Description	Updates the title and/or content of a post
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			postId	path		int					true	"Post ID"
+//	@Param			body	body		UpdatePostPayload	true	"Update payload"
+//	@Success		200		{object}	store.Post
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postId} [patch]
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
 	post, _ := getPostFromCtx(r)
 
@@ -110,6 +151,18 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// deletePostHandler godoc
+//
+//	@Summary		Delete a post
+//	@Description	Deletes a post by its ID
+//	@Tags			posts
+//	@Param			postId	path	int	true	"Post ID"
+//	@Success		204		"No Content"
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postId} [delete]
 func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	postId := chi.URLParam(r, "postId")

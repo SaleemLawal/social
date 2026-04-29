@@ -43,7 +43,7 @@ func main() {
 			maxIdleTime:  time.Duration(env.GetInt("DB_MAX_OPEN_CONNS", 30)),
 		},
 		env:    env.GetString("env", "dev"),
-		apiURL: env.GetString("API_URL", "http://localhost:8080"),
+		apiURL: env.GetString("API_URL", "localhost:8080"),
 	}
 
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
