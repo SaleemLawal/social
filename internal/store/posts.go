@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -130,8 +131,8 @@ func (s *PostStore) Delete(ctx context.Context, postId int64) error {
 	return nil
 }
 
-func (s *PostStore) GetFeeds(ctx context.Context, userID int64) ([]*Feed, error) {
-	query := `
+func (s *PostStore) GetFeeds(ctx context.Context, userID int64, fq *PaginationFeedsQuery) ([]*Feed, error) {
+	query := fmt.Sprintf(`
 		SELECT p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags,
 			u.username, COUNT(c.id) AS comment_count
 		FROM posts p
@@ -142,12 +143,13 @@ func (s *PostStore) GetFeeds(ctx context.Context, userID int64) ([]*Feed, error)
 			SELECT user_id FROM followers WHERE follower_id = $1
 		)
 		GROUP BY p.id, u.username
-		ORDER BY p.created_at DESC
-	`
+		ORDER BY p.created_at %s
+		LIMIT $2 OFFSET $3
+	`, fq.Sort)
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
 	defer cancel()
 
-	rows, err := s.db.QueryContext(ctx, query, userID)
+	rows, err := s.db.QueryContext(ctx, query, userID, fq.Limit, fq.Offset)
 	if err != nil {
 		return nil, err
 	}
