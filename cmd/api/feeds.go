@@ -11,6 +11,7 @@ func (app *application) getFeedsHandler(w http.ResponseWriter, r *http.Request) 
 		Limit:  20,
 		Offset: 0,
 		Sort:   "desc",
+		Tags:   []string{},
 	}
 
 	fq, err := fq.Parse(r)

@@ -132,24 +132,45 @@ func (s *PostStore) Delete(ctx context.Context, postId int64) error {
 }
 
 func (s *PostStore) GetFeeds(ctx context.Context, userID int64, fq *PaginationFeedsQuery) ([]*Feed, error) {
+	sinceClause := ""
+	if fq.Since != "" {
+		sinceClause = "AND (p.created_at >= $6)"
+	}
+	untilClause := ""
+	if fq.Until != "" {
+		untilClause = "AND (p.created_at <= $7)"
+	}
+
 	query := fmt.Sprintf(`
 		SELECT p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags,
 			u.username, COUNT(c.id) AS comment_count
 		FROM posts p
 		LEFT JOIN comments c ON p.id = c.post_id
 		LEFT JOIN users u ON p.user_id = u.id
-		WHERE p.user_id = $1
+		WHERE (p.user_id = $1
 		OR p.user_id IN (
 			SELECT user_id FROM followers WHERE follower_id = $1
-		)
+		))
+		AND (p.title ILIKE '%%' || $4 || '%%' OR p.content ILIKE '%%' || $4 || '%%')
+		AND (p.tags @> $5 OR $5 = '{}')
+		%s
+		%s
 		GROUP BY p.id, u.username
 		ORDER BY p.created_at %s
 		LIMIT $2 OFFSET $3
-	`, fq.Sort)
+	`, sinceClause, untilClause, fq.Sort)
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
 	defer cancel()
 
-	rows, err := s.db.QueryContext(ctx, query, userID, fq.Limit, fq.Offset)
+	args := []any{userID, fq.Limit, fq.Offset, fq.Search, pq.Array(fq.Tags)}
+	if fq.Since != "" {
+		args = append(args, fq.Since)
+	}
+	if fq.Until != "" {
+		args = append(args, fq.Until)
+	}
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
