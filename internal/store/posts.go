@@ -10,15 +10,21 @@ import (
 )
 
 type Post struct {
-	ID int64 `json:"id"`
-	Content string `json:"content"`
-	Title string `json:"title"`
-	UserID int64 `json:"user_id"`
-	Tags []string `json:"tags"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Comments []*Comment `json:"comments"`
-	Version int `json:"version"`
+	ID        int64      `json:"id"`
+	Content   string     `json:"content"`
+	Title     string     `json:"title"`
+	UserID    int64      `json:"user_id"`
+	Tags      []string   `json:"tags"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	Comments  []*Comment `json:"comments"`
+	Version   int        `json:"version"`
+}
+
+type Feed struct {
+	Post
+	CommentCount int    `json:"comment_count"`
+	Username     string `json:"username"`
 }
 
 type PostStore struct {
@@ -122,4 +128,53 @@ func (s *PostStore) Delete(ctx context.Context, postId int64) error {
 	}
 
 	return nil
+}
+
+func (s *PostStore) GetFeeds(ctx context.Context, userID int64) ([]*Feed, error) {
+	query := `
+		SELECT p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags,
+			u.username, COUNT(c.id) AS comment_count
+		FROM posts p
+		LEFT JOIN comments c ON p.id = c.post_id
+		LEFT JOIN users u ON p.user_id = u.id
+		WHERE p.user_id = $1
+		OR p.user_id IN (
+			SELECT user_id FROM followers WHERE follower_id = $1
+		)
+		GROUP BY p.id, u.username
+		ORDER BY p.created_at DESC
+	`
+	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
+	defer cancel()
+
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var feeds []*Feed
+	for rows.Next() {
+		var feed Feed
+		if err := rows.Scan(
+			&feed.ID,
+			&feed.UserID,
+			&feed.Title,
+			&feed.Content,
+			&feed.CreatedAt,
+			&feed.Version,
+			pq.Array(&feed.Tags),
+			&feed.Username,
+			&feed.CommentCount,
+		); err != nil {
+			return nil, err
+		}
+		feeds = append(feeds, &feed)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return feeds, nil
 }

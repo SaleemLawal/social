@@ -20,13 +20,17 @@ type Storage struct {
 		GetById(context.Context, int64) (*Post, error)
 		Delete(context.Context, int64) error
 		Update(context.Context, *Post) error
+		GetFeeds(context.Context, int64) ([]*Feed, error)
+
 	}
+	
 	Users interface{
 		Create(context.Context, *User) error
 		GetById(context.Context, int64) (*User, error)
 		Follow(context.Context, int64, int64) error
 		Unfollow(context.Context, int64, int64) error
 	}
+
 	Comments interface{
 		GetByPostId(context.Context, int64) ([]*Comment, error)
 		Create(context.Context, *Comment) error
