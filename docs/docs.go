@@ -50,7 +50,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created"
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/main.userWithToken"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -335,6 +338,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/activate/{token}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Activates a user account using a token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Activate a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Activation token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "User activated successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {}
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
         "/users/feeds": {
             "get": {
                 "security": [
@@ -540,7 +593,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Removes the authenticated user as a follower of the specified user",
+                "description": "Unfollows a user",
                 "consumes": [
                     "application/json"
                 ],
@@ -687,6 +740,17 @@ const docTemplate = `{
                 }
             }
         },
+        "main.userWithToken": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/store.User"
+                }
+            }
+        },
         "store.Comment": {
             "type": "object",
             "properties": {
@@ -798,6 +862,9 @@ const docTemplate = `{
         "store.User": {
             "type": "object",
             "properties": {
+                "activated": {
+                    "type": "boolean"
+                },
                 "created_at": {
                     "type": "string"
                 },

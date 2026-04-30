@@ -68,6 +68,13 @@ definitions:
     - password
     - username
     type: object
+  main.userWithToken:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/store.User'
+    type: object
   store.Comment:
     properties:
       content:
@@ -141,6 +148,8 @@ definitions:
     type: object
   store.User:
     properties:
+      activated:
+        type: boolean
       created_at:
         type: string
       email:
@@ -179,6 +188,8 @@ paths:
       responses:
         "201":
           description: Created
+          schema:
+            $ref: '#/definitions/main.userWithToken'
         "400":
           description: Bad Request
           schema: {}
@@ -441,7 +452,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Removes the authenticated user as a follower of the specified user
+      description: Unfollows a user
       parameters:
       - description: User ID to unfollow
         in: path
@@ -474,6 +485,39 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Unfollow a user
+      tags:
+      - users
+  /users/activate/{token}:
+    put:
+      consumes:
+      - application/json
+      description: Activates a user account using a token
+      parameters:
+      - description: Activation token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User activated successfully
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "409":
+          description: Conflict
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Activate a user
       tags:
       - users
   /users/feeds:

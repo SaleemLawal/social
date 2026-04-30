@@ -58,8 +58,7 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 //	@Security		ApiKeyAuth
 //	@Router			/users/{id}/follow [put]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
-	// get the user id from the url
-	followerUser := getUserFromCtx(r)
+	followedUser := getUserFromCtx(r)
 
 	// revert back to auth user
 	var payload FollowUser
@@ -68,7 +67,7 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := app.store.Users.Follow(r.Context(), followerUser.ID, payload.UserId); err != nil {
+	if err := app.store.Users.Follow(r.Context(), payload.UserId, followedUser.ID); err != nil {
 		switch {
 		case errors.Is(err, store.ErrConflict):
 			app.conflictError(w, r, err)
@@ -80,17 +79,13 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := app.jsonResponse(w, http.StatusNoContent, nil); err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
-
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // unfollowUserHandler godoc
 //
 //	@Summary		Unfollow a user
-//	@Description	Removes the authenticated user as a follower of the specified user
+//	@Description	Unfollows a user
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
@@ -104,8 +99,7 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 //	@Security		ApiKeyAuth
 //	@Router			/users/{id}/unfollow [put]
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
-	// get the user id from the url
-	unFollowedUser := getUserFromCtx(r)
+	unfollowedUser := getUserFromCtx(r)
 
 	// revert back to auth user
 	var payload FollowUser
@@ -114,11 +108,42 @@ func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := app.store.Users.Unfollow(r.Context(), unFollowedUser.ID, payload.UserId); err != nil {
+	if err := app.store.Users.Unfollow(r.Context(), payload.UserId, unfollowedUser.ID); err != nil {
 		switch {
 		case errors.Is(err, store.ErrConflict):
 			app.conflictError(w, r, err)
 		case errors.Is(err, store.ErrRecordNotFound):
+			app.notFoundError(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// activateUserHandler godoc
+//
+//	@Summary		Activate a user
+//	@Description	Activates a user account using a token
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			token	path	string	true	"Activation token"
+//	@Success		204		"User activated successfully"
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		409		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/users/activate/{token} [put]
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+
+	if err := app.store.Users.Activate(r.Context(), token); err != nil {
+		switch err {
+		case store.ErrRecordNotFound:
 			app.notFoundError(w, r, err)
 		default:
 			app.internalServerError(w, r, err)

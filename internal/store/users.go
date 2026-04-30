@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -21,11 +23,12 @@ type User struct {
 	Email     string    `json:"email"`
 	Password  password  `json:"-"`
 	CreatedAt time.Time `json:"created_at"`
+	Activated bool      `json:"activated"`
 }
 
 type Follower struct {
-	UserId     int64     `json:"user_id"`
-	FollowerId int64     `json:"follower_id"`
+	FollowedID int64     `json:"followed_id"`
+	FollowerID int64     `json:"follower_id"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
@@ -83,15 +86,15 @@ func (s *UserStore) GetById(ctx context.Context, userId int64) (*User, error) {
 	return user, nil
 }
 
-func (s *UserStore) Follow(ctx context.Context, followerId, userId int64) error {
+func (s *UserStore) Follow(ctx context.Context, followerID, followedID int64) error {
 	query := `
-		INSERT INTO followers (user_id, follower_id) VALUES($1, $2)
+		INSERT INTO followers (followed_id, follower_id) VALUES($1, $2)
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
 	defer cancel()
 
-	_, err := s.db.ExecContext(ctx, query, userId, followerId)
+	_, err := s.db.ExecContext(ctx, query, followedID, followerID)
 	if err != nil {
 		var pqErr *pq.Error
 		switch {
@@ -106,15 +109,15 @@ func (s *UserStore) Follow(ctx context.Context, followerId, userId int64) error 
 	return nil
 }
 
-func (s *UserStore) Unfollow(ctx context.Context, followerId, userId int64) error {
+func (s *UserStore) Unfollow(ctx context.Context, followerID, followedID int64) error {
 	query := `
-		DELETE FROM followers WHERE user_id = $1 AND follower_id = $2
+		DELETE FROM followers WHERE followed_id = $1 AND follower_id = $2
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
 	defer cancel()
 
-	_, err := s.db.ExecContext(ctx, query, userId, followerId)
+	_, err := s.db.ExecContext(ctx, query, followedID, followerID)
 
 	return err
 }
@@ -144,5 +147,86 @@ func (s *UserStore) createUserInvitation(ctx context.Context, tx *sql.Tx, token 
 		return err
 	}
 
+	return nil
+}
+
+func (s *UserStore) Activate(ctx context.Context, token string) error {
+	return withTx(s.db, ctx, func(tx *sql.Tx) error {
+		// find the user that has the token
+		user, err := s.getUserByTokenInvitation(ctx, tx, token)
+		if err != nil {
+			return err
+		}
+		// updste the user to activated
+		user.Activated = true
+		if err := s.update(ctx, tx, user); err != nil {
+			return err
+		}
+
+		// delete the invitations
+		if err := s.deleteUserInvitation(ctx, tx, user.ID); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (s *UserStore) getUserByTokenInvitation(ctx context.Context, tx *sql.Tx, token string) (*User, error) {
+	query := `
+	SELECT 
+		u.id, u.username, u.email, u.created_at, u.activated
+	FROM users u
+	JOIN user_invitations ui ON u.id = ui.user_id
+	WHERE ui.token = $1
+	AND ui.expires_at > NOW()
+	`
+
+	hash := sha256.Sum256([]byte(token))
+	hashToken := hex.EncodeToString(hash[:])
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
+	defer cancel()
+
+	var user = &User{}
+	if err := tx.QueryRowContext(ctx, query, hashToken).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.Activated); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return user, nil
+}
+
+func (s *UserStore) update(ctx context.Context, tx *sql.Tx, user *User) error {
+	query := `
+		UPDATE users SET 
+		username = $1, email = $2, activated = $3 WHERE id = $4
+	`
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, query, user.Username, user.Email, user.Activated, user.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UserStore) deleteUserInvitation(ctx context.Context, tx *sql.Tx, userId int64) error {
+	query := `
+		DELETE FROM user_invitations WHERE user_id = $1
+	`
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, query, userId)
+	if err != nil {
+		return err
+	}
 	return nil
 }
