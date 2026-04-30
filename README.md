@@ -12,7 +12,7 @@
 ---
 
 ```
-  [ REST API ]  ·  [ Go 1.25 ]  ·  [ PostgreSQL 17 ]  ·  [ Docker ]  ·  [ Swagger ]
+  [ REST API ]  ·  [ Go 1.25 ]  ·  [ PostgreSQL 17 ]  ·  [ Docker ]  ·  [ Swagger ]  ·  [ Mailtrap ]
 ```
 
 ---
@@ -101,6 +101,8 @@
 | Containerisation | Docker + Docker Compose               |
 | Password Hashing | bcrypt                                |
 | Token Hashing  | SHA-256                                 |
+| Email (dev)    | Mailtrap (SMTP)                         |
+| Email (prod)   | SendGrid (pluggable via interface)      |
 
 ---
 
@@ -126,6 +128,12 @@ social/
 │   │   ├── users.go         # User & follower DB operations
 │   │   ├── posts.go         # Post DB operations
 │   │   └── comments.go      # Comment DB operations
+│   ├── mailer/
+│   │   ├── mailer.go        # Client interface + Email struct + embedded FS
+│   │   ├── sendgrid.go      # SendGrid implementation
+│   │   ├── mailtrap.go      # Mailtrap SMTP implementation (dev)
+│   │   └── templates/       # Go text/template email templates
+│   │       └── user_invitation.tmpl
 │   ├── db/                  # DB connection setup
 │   └── env/                 # Environment variable helpers
 ├── docs/                    # Auto-generated Swagger docs
@@ -173,6 +181,7 @@ Create a `.env` file in the project root:
 PORT=8080
 ENV=dev
 API_URL=localhost:8080
+FRONTEND_URL=http://localhost:3000
 
 # PostgreSQL connection string
 DB_URL=postgres://admin:adminpassword@localhost/social?sslmode=disable
@@ -181,6 +190,16 @@ DB_URL=postgres://admin:adminpassword@localhost/social?sslmode=disable
 DB_MAX_OPEN_CONNS=30
 DB_MAX_IDLE_CONNS=30
 DB_MAX_IDLE_TIME=30
+
+# Email sender address
+FROM_EMAIL=you@example.com
+
+# Mailtrap SMTP (development) — https://mailtrap.io
+MAILTRAP_USERNAME=
+MAILTRAP_PASSWORD=
+
+# SendGrid (production)
+SENDGRID_API_KEY=
 ```
 
 ---
@@ -225,15 +244,35 @@ POST   /v1/posts/{postId}/comments   Add a comment to a post
 
 ```
   1.  POST /v1/authentication/user
-        └── Creates user (inactive)
-        └── Generates SHA-256 hashed token stored in user_invitations
-        └── Returns plain token in response
+        └── Validates input (username, email, password)
+        └── Hashes password with bcrypt
+        └── Creates user (activated = false)
+        └── Generates UUID token, hashes it with SHA-256
+        └── Stores hashed token in user_invitations (3 day expiry)
+        └── Sends invitation email via mailer (Mailtrap in dev, SendGrid in prod)
+        └── Returns plain token + user in response
 
   2.  PUT /v1/users/activate/{token}
-        └── Looks up token (checks expiry)
+        └── Hashes the incoming token with SHA-256
+        └── Looks up matching invitation (checks expiry)
         └── Sets user.activated = true
         └── Deletes the invitation record
 ```
+
+### Email Architecture
+
+The mailer is built around a `Client` interface, making the email provider fully swappable:
+
+```
+  mailer.Client (interface)
+      └── Send(templateFile, email, isSandbox) error
+
+          satisfied by:
+          ├── *MailtrapMailer   — dev  (SMTP, emails captured in test inbox)
+          └── *SendGridMailer   — prod (HTTP API)
+```
+
+To switch providers, change one line in `main.go`. No handlers or business logic changes required.
 
 ---
 
@@ -276,13 +315,35 @@ make migrate-force <version>
 
 The project uses a multi-stage Dockerfile:
 
-| Stage     | Purpose                                              |
-| --------- | ---------------------------------------------------- |
-| `builder` | Compiles the binary with `CGO_ENABLED=0`             |
-| `dev`     | Hot reload via Air, installs `make` and `swag`       |
-| `runtime` | Minimal Alpine image, runs the pre-built binary      |
+| Stage     | Purpose                                                       |
+| --------- | ------------------------------------------------------------- |
+| `builder` | Compiles the binary with `CGO_ENABLED=0`                      |
+| `dev`     | Hot reload via Air, installs `make` and `swag` via `apk`      |
+| `runtime` | Minimal Alpine image, runs the pre-built binary               |
 
-The `compose.override.yml` activates the `dev` target automatically and mounts the source directory into the container so Air can detect changes and rebuild.
+The `compose.override.yml` activates the `dev` target automatically and mounts the source directory into the container so Air can detect changes and rebuild. Air runs `make swagger` as a `pre_cmd` before each reload to keep Swagger docs in sync.
+
+### Running the Debugger Locally
+
+To run the API outside Docker (e.g. with the Cursor/VS Code debugger):
+
+```bash
+# Start only the database
+docker compose up db -d
+```
+
+Then launch the debugger. Ensure the working directory is set to the project root so `godotenv` can find `.env`:
+
+```json
+{
+  "name": "Launch API",
+  "type": "go",
+  "request": "launch",
+  "mode": "auto",
+  "program": "${workspaceFolder}/cmd/api",
+  "cwd": "${workspaceFolder}"
+}
+```
 
 ```bash
 # Start in development mode with live reload
