@@ -10,7 +10,11 @@ require (
 	github.com/swaggo/http-swagger v1.3.4
 )
 
-require go.uber.org/multierr v1.10.0 // indirect
+require (
+	github.com/sendgrid/rest v2.6.9+incompatible // indirect
+	github.com/sendgrid/sendgrid-go v3.16.1+incompatible // indirect
+	go.uber.org/multierr v1.10.0 // indirect
+)
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
