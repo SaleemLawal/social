@@ -6,6 +6,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/saleemlawal/social/internal/db"
 	"github.com/saleemlawal/social/internal/env"
+	"github.com/saleemlawal/social/internal/mailer"
 	"github.com/saleemlawal/social/internal/store"
 	"go.uber.org/zap"
 )
@@ -41,16 +42,30 @@ func main() {
 	}
 
 	cfg := &config{
-		addr: ":" + env.GetString("PORT", "8080"),
+		addr:        ":" + env.GetString("PORT", "8080"),
+		env:         env.GetString("env", "dev"),
+		apiURL:      env.GetString("API_URL", "localhost:8080"),
+		frontendUrl: env.GetString("FRONTEND_URL", "http://localhost:3000"),
 		db: dbConfig{
 			addr:         env.GetString("DB_URL", "postgres://admin:adminpassword@localhost/social?sslmode=disable"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleTime:  time.Duration(env.GetInt("DB_MAX_OPEN_CONNS", 30)),
 		},
-		env:    env.GetString("env", "dev"),
-		apiURL: env.GetString("API_URL", "localhost:8080"),
-		mail: struct{ exp time.Duration }{
+		mail: struct {
+			fromEmail string
+			sendGrid  sendGridConfig
+			mailtrap  mailtrapConfig
+			exp       time.Duration
+		}{
+			fromEmail: env.GetString("FROM_EMAIL", ""),
+			sendGrid: sendGridConfig{
+				apiKey: env.GetString("SENDGRID_API_KEY", ""),
+			},
+			mailtrap: mailtrapConfig{
+				username: env.GetString("MAILTRAP_USERNAME", ""),
+				password: env.GetString("MAILTRAP_PASSWORD", ""),
+			},
 			exp: time.Hour * 24 * 3,
 		},
 	}
@@ -64,11 +79,14 @@ func main() {
 	defer db.Close()
 	logger.Info("database connection pool established")
 
+	mailer := mailer.NewMailtrapMailer(cfg.mail.fromEmail, cfg.mail.mailtrap.username, cfg.mail.mailtrap.password)
+
 	store := store.NewStorage(db)
 	app := &application{
 		config: *cfg,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
 
 	mux := app.mount()
