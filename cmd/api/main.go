@@ -50,6 +50,9 @@ func main() {
 		},
 		env:    env.GetString("env", "dev"),
 		apiURL: env.GetString("API_URL", "localhost:8080"),
+		mail: struct{ exp time.Duration }{
+			exp: time.Hour * 24 * 3,
+		},
 	}
 
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)

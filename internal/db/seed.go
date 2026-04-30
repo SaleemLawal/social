@@ -73,7 +73,7 @@ func Seed(s store.Storage) {
 		wg.Add(1)
 		go func(user *store.User) {
 			defer wg.Done()
-			if err := s.Users.Create(ctx, user); err != nil {
+			if err := s.Users.Create(ctx, nil, user); err != nil {
 				log.Println(err)
 				return
 			}
@@ -145,7 +145,6 @@ func generateUsers(count int) []*store.User {
 		users[i] = &store.User{
 			Username: fmt.Sprintf("user%d", i),
 			Email:    fmt.Sprintf("user%d@example.com", i),
-			Password: "password",
 		}
 	}
 	return users
