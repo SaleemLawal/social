@@ -49,6 +49,25 @@ definitions:
         minLength: 3
         type: string
     type: object
+  main.registerUserRequest:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      password:
+        description: 'TODO: add password complexity rules'
+        maxLength: 72
+        minLength: 3
+        type: string
+      username:
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
   store.Comment:
     properties:
       content:
@@ -143,6 +162,32 @@ info:
   termsOfService: http://swagger.io/terms/
   title: Swagger Example API
 paths:
+  /authentication/user:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user with the provided username and email
+      parameters:
+      - description: User to register
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/main.registerUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Register a new user
+      tags:
+      - authentication
   /health:
     get:
       description: Returns the health status, environment, and version of the API
@@ -327,8 +372,7 @@ paths:
       - application/json
       description: Fetches a user profile by their ID
       parameters:
-      - default: 1
-        description: User ID
+      - description: User ID
         in: path
         name: id
         required: true

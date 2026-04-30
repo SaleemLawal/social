@@ -75,11 +75,11 @@ func (app *application) mount() http.Handler {
 			r.Group(func(r chi.Router) {
 				r.Get("/feeds", app.getFeedsHandler)
 			})
+		})
 
-			// public routes
-			r.Route("/authentication", func(r chi.Router) {
-				r.Post("/user", app.registerUserHandler)
-			})
+		// public routes
+		r.Route("/authentication", func(r chi.Router) {
+			r.Post("/user", app.registerUserHandler)
 		})
 	})
 

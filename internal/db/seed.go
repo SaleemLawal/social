@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -63,23 +64,26 @@ var commentsContent = []string{
 	"You just described my life.",
 }
 
-func Seed(s store.Storage) {
+func Seed(s store.Storage, db *sql.DB) {
 	wg := sync.WaitGroup{}
 	ctx := context.Background()
 
 	users := generateUsers(100)
+	tx, _ := db.BeginTx(ctx, nil)
 
 	for _, user := range users {
 		wg.Add(1)
 		go func(user *store.User) {
 			defer wg.Done()
-			if err := s.Users.Create(ctx, nil, user); err != nil {
+			if err := s.Users.Create(ctx, tx, user); err != nil {
+				_ = tx.Rollback()
 				log.Println(err)
 				return
 			}
 		}(user)
 	}
 	wg.Wait()
+	tx.Commit()
 
 	posts := generatePosts(200, users)
 	for _, post := range posts {

@@ -50,7 +50,7 @@ func (s *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
 	defer cancel()
 
-	err := s.db.QueryRowContext(ctx, query, user.Username, user.Password, user.Email).Scan(&user.ID, &user.CreatedAt)
+	err := s.db.QueryRowContext(ctx, query, user.Username, user.Password.hash, user.Email).Scan(&user.ID, &user.CreatedAt)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_username_key"`:

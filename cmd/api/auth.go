@@ -12,7 +12,7 @@ import (
 type registerUserRequest struct {
 	Username string `json:"username" validate:"required,min=3,max=255"`
 	Email    string `json:"email" validate:"required,email,max=255"`
-	Password string `json:"password" validate:"required,min=8,max=72"`
+	Password string `json:"password" validate:"required,min=3,max=72"` // TODO: add password complexity rules
 }
 
 // registerUserHandler godoc
@@ -22,8 +22,8 @@ type registerUserRequest struct {
 //	@Tags			authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			user	body	store.User	true	"User to register"
-//	@Success		201		{object}	store.User
+//	@Param			user	body		registerUserRequest	true	"User to register"
+//	@Success		201		{object}	nil
 //	@Failure		400		{object}	error
 //	@Failure		500		{object}	error
 //	@Router			/authentication/user [post]
