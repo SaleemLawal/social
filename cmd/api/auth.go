@@ -15,6 +15,11 @@ type registerUserRequest struct {
 	Password string `json:"password" validate:"required,min=3,max=72"` // TODO: add password complexity rules
 }
 
+type userWithToken struct {
+	User  *store.User `json:"user"`
+	Token string      `json:"token"`
+}
+
 // registerUserHandler godoc
 //
 //	@Summary		Register a new user
@@ -23,7 +28,7 @@ type registerUserRequest struct {
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		registerUserRequest	true	"User to register"
-//	@Success		201		{object}	nil
+//	@Success		201		{object}	userWithToken
 //	@Failure		400		{object}	error
 //	@Failure		500		{object}	error
 //	@Router			/authentication/user [post]
@@ -74,7 +79,12 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 
 	// rollback if failure
 
-	if err := app.jsonResponse(w, http.StatusCreated, nil); err != nil {
+	userWithToken := &userWithToken{
+		User:  user,
+		Token: plainToken,
+	}
+
+	if err := app.jsonResponse(w, http.StatusCreated, userWithToken); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}

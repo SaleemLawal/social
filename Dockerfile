@@ -6,7 +6,9 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /out/api ./cmd/api
 
 FROM golang:1.25.6-alpine AS dev
-RUN go install github.com/air-verse/air@latest
+RUN apk add --no-cache make
+RUN go install github.com/air-verse/air@latest && \
+    go install github.com/swaggo/swag/cmd/swag@latest
 WORKDIR /app
 EXPOSE 8080
 CMD ["air", "-c", ".air.toml"]
