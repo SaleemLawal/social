@@ -1,0 +1,1 @@
+DROP COLUMN IF EXISTS expires_at;
