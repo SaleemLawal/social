@@ -27,6 +27,7 @@ type CreateCommentPayload struct {
 //	@Security		ApiKeyAuth
 //	@Router			/posts/{postId}/comments [post]
 func (app *application) createCommentHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromCtx(r)
 	post, ok := getPostFromCtx(r)
 
 	if !ok {
@@ -50,7 +51,7 @@ func (app *application) createCommentHandler(w http.ResponseWriter, r *http.Requ
 		Content: payload.Content,
 		Likes:   payload.Likes,
 		PostID:  post.ID,
-		UserID:  1, // TODO: Change after authentication
+		UserID:  user.ID,
 	}
 
 	if err := app.store.Comments.Create(r.Context(), comment); err != nil {

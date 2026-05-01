@@ -44,8 +44,8 @@ func (app *application) getFeedsHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// TODO: get user ID from context
-	feeds, err := app.store.Posts.GetFeeds(r.Context(), int64(97), fq)
+	user := getUserFromCtx(r)
+	feeds, err := app.store.Posts.GetFeeds(r.Context(), user.ID, fq)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return

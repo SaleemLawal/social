@@ -46,6 +46,10 @@ func (p *password) Set(password string) error {
 	return nil
 }
 
+func (p *password) Compare(text string) error {
+	return bcrypt.CompareHashAndPassword(p.hash, []byte(text))
+}
+
 func (s *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 	var query string = `
 		INSERT INTO users (username, password, email) VALUES($1, $2, $3) RETURNING id, created_at
@@ -87,6 +91,7 @@ func (s *UserStore) GetById(ctx context.Context, userId int64) (*User, error) {
 }
 
 func (s *UserStore) Follow(ctx context.Context, followerID, followedID int64) error {
+	// follower_id follows followed_id
 	query := `
 		INSERT INTO followers (followed_id, follower_id) VALUES($1, $2)
 	`

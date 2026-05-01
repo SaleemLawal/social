@@ -594,15 +594,6 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Follower user ID",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/main.FollowUser"
-                        }
                     }
                 ],
                 "responses": {
@@ -653,15 +644,6 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Follower user ID",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/main.FollowUser"
-                        }
                     }
                 ],
                 "responses": {
@@ -731,14 +713,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 3
-                }
-            }
-        },
-        "main.FollowUser": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer"
                 }
             }
         },

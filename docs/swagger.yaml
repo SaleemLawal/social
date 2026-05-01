@@ -33,11 +33,6 @@ definitions:
     - tags
     - title
     type: object
-  main.FollowUser:
-    properties:
-      user_id:
-        type: integer
-    type: object
   main.UpdatePostPayload:
     properties:
       content:
@@ -461,12 +456,6 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Follower user ID
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/main.FollowUser'
       produces:
       - application/json
       responses:
@@ -500,12 +489,6 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Follower user ID
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/main.FollowUser'
       produces:
       - application/json
       responses:
