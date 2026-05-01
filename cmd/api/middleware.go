@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 func (app *application) BasicAuthMiddleware() func(http.Handler) http.Handler {
@@ -46,4 +49,52 @@ func (app *application) BasicAuthMiddleware() func(http.Handler) http.Handler {
 		})
 	}
 
+}
+
+func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+
+		if authHeader == "" {
+			app.unauthorizedError(w, r, fmt.Errorf("No authorization header"))
+			return
+		}
+
+		parts := strings.Split(authHeader, " ")
+
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			app.unauthorizedError(w, r, fmt.Errorf("Invalid authorization header"))
+			return
+		}
+
+		token := parts[1]
+
+		jwtToken, err := app.authenticator.ValidateToken(token)
+		if err != nil {
+			app.unauthorizedError(w, r, err)
+			return
+		}
+
+		claims, _ := jwtToken.Claims.(jwt.MapClaims)
+
+		sub, ok := claims["sub"].(float64)
+		if !ok {
+			app.unauthorizedError(w, r, fmt.Errorf("invalid subject claim"))
+			return
+		}
+		userId := int64(sub)
+
+		ctx := r.Context()
+
+		user, err := app.store.Users.GetById(ctx, userId)
+		if err != nil {
+			app.unauthorizedError(w, r, err)
+			return
+		}
+
+		ctx = context.WithValue(ctx, UserKeyContext, user)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
 }
