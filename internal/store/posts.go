@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -143,13 +144,32 @@ func (s *PostStore) GetFeeds(ctx context.Context, userID int64, fq *PaginationFe
 
 	query := fmt.Sprintf(`
 		SELECT p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags,
-			u.username, COUNT(c.id) AS comment_count
+			u.username, COUNT(c.id) AS comment_count,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', c.id,
+						'content', c.content,
+						'post_id', c.post_id,
+						'user_id', c.user_id,
+						'created_at', c.created_at,
+						'likes', c.likes,
+						'user', json_build_object(
+							'id', cu.id,
+							'username', cu.username,
+							'email', cu.email
+						)
+					)
+				) FILTER (WHERE c.id IS NOT NULL),
+				'[]'
+			) AS comments
 		FROM posts p
 		LEFT JOIN comments c ON p.id = c.post_id
+		LEFT JOIN users cu ON c.user_id = cu.id
 		LEFT JOIN users u ON p.user_id = u.id
 		WHERE (p.user_id = $1
 		OR p.user_id IN (
-			SELECT user_id FROM followers WHERE follower_id = $1
+			SELECT followers.followed_id FROM followers WHERE follower_id = $1
 		))
 		AND (p.title ILIKE '%%' || $4 || '%%' OR p.content ILIKE '%%' || $4 || '%%')
 		AND (p.tags @> $5 OR $5 = '{}')
@@ -179,6 +199,7 @@ func (s *PostStore) GetFeeds(ctx context.Context, userID int64, fq *PaginationFe
 	var feeds []*Feed
 	for rows.Next() {
 		var feed Feed
+		var commentsJSON []byte
 		if err := rows.Scan(
 			&feed.ID,
 			&feed.UserID,
@@ -189,7 +210,11 @@ func (s *PostStore) GetFeeds(ctx context.Context, userID int64, fq *PaginationFe
 			pq.Array(&feed.Tags),
 			&feed.Username,
 			&feed.CommentCount,
+			&commentsJSON,
 		); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(commentsJSON, &feed.Comments); err != nil {
 			return nil, err
 		}
 		feeds = append(feeds, &feed)
