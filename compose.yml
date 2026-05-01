@@ -5,6 +5,11 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: adminpassword
       POSTGRES_DB: social
+      # PORT: ${DB_PORT}
+      # DB_URL: ${DB_URL}
+      # SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      # MAILTRAP_USERNAME: ${MAILTRAP_USERNAME}
+      # MAILTRAP_PASSWORD: ${MAILTRAP_PASSWORD}
     ports:
       - 5432:5432
     volumes:
@@ -15,6 +20,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    env_file:
+      - .env
   
   migrate:
     image: migrate/migrate:v4.17.1
