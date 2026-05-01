@@ -11,6 +11,9 @@ import (
 	"github.com/saleemlawal/social/internal/store"
 )
 
+// Keep each DB op from queueing longer than store.QUERY_TIMEOUT_DURATION (waits for a conn count toward that deadline).
+const seedParallelComments = 20
+
 var tags = []string{
 	"technology",
 	"programming",
@@ -100,18 +103,20 @@ func Seed(s store.Storage, db *sql.DB) {
 	wg.Wait()
 
 	comments := generateComments(10000, posts, users)
+	sem := make(chan struct{}, seedParallelComments)
 	for _, comment := range comments {
 		wg.Add(1)
+		sem <- struct{}{}
 		go func(comment *store.Comment) {
 			defer wg.Done()
+			defer func() { <-sem }()
 			if err := s.Comments.Create(ctx, comment); err != nil {
 				log.Println(err)
-				return
 			}
 		}(comment)
 	}
 	wg.Wait()
-	log.Println("Seeded database with 100 users, 200 posts, and 500 comments")
+	log.Printf("Seeded database with %d users, %d posts, and %d comments\n", len(users), len(posts), len(comments))
 }
 
 func generateComments(count int, posts []*store.Post, users []*store.User) []*store.Comment {
@@ -146,11 +151,15 @@ func generatePosts(count int, users []*store.User) []*store.Post {
 func generateUsers(count int) []*store.User {
 	users := make([]*store.User, count)
 	for i := range count {
-		users[i] = &store.User{
+		u := &store.User{
 			Username: fmt.Sprintf("user%d", i),
 			Email:    fmt.Sprintf("user%d@example.com", i),
 			Role:     store.Role{Name: "User"},
 		}
+		if err := u.Password.Set("password"); err != nil {
+			log.Fatalf("seed: user password: %v", err)
+		}
+		users[i] = u
 	}
 	return users
 }

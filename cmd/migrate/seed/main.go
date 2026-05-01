@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	conn, err := db.New(os.Getenv("DB_URL"), 3, 3, 5*time.Second)
+	// Enough connections for bounded parallel seed work (see db.Seed); a tiny pool + huge fan-out hits store query timeouts.
+	conn, err := db.New(os.Getenv("DB_URL"), 25, 10, 5*time.Minute)
 	if err != nil {
 		log.Fatal(err)
 	}
