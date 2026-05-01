@@ -32,10 +32,13 @@ const version = "0.0.2"
 // @name						Authorization
 // @description				Type "Bearer" followed by a space and JWT token.
 func main() {
-	// logger := zap.Must(zap.NewProduction()).Sugar()
-	loggerConfig := zap.NewProductionConfig()
-	loggerConfig.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
-	logger := zap.Must(loggerConfig.Build()).Sugar()
+	appEnv := env.GetString("env", "dev")
+	var logger *zap.SugaredLogger
+	if appEnv == "production" {
+		logger = zap.Must(zap.NewProduction()).Sugar()
+	} else {
+		logger = zap.Must(zap.NewDevelopment()).Sugar()
+	}
 	defer logger.Sync()
 
 	if err := godotenv.Load(); err != nil {
