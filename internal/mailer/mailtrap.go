@@ -3,7 +3,6 @@ package mailer
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"math"
 	"mime"
 	"net/smtp"
@@ -58,18 +57,17 @@ func (m *MailtrapMailer) Send(templateFile string, email *Email, isSandbox bool)
 	addr := fmt.Sprintf("%s:%d", m.host, m.port)
 	auth := smtp.PlainAuth("", m.username, m.password, m.host)
 
+	var retryErr error
+
 	for i := range MaxRetries {
-		err := smtp.SendMail(addr, auth, m.fromEmail, []string{email.ToEmail}, []byte(msg))
-		if err != nil {
-			log.Printf("Failed to send email to %v, attempt %d of %d", email.ToEmail, i+1, MaxRetries)
-			log.Printf("Error: %v", err.Error())
+		retryErr := smtp.SendMail(addr, auth, m.fromEmail, []string{email.ToEmail}, []byte(msg))
+		if retryErr != nil {
+			// Exponential backoff
 			time.Sleep(time.Second * time.Duration(math.Pow(2, float64(i))))
 			continue
 		}
-
-		log.Printf("Email sent to %v via Mailtrap", email.ToEmail)
 		return nil
 	}
 
-	return fmt.Errorf("failed to send email to %v after %d attempts", email.ToEmail, MaxRetries)
+	return fmt.Errorf("failed to send email to %v after %d attempts, error: %v", email.ToEmail, MaxRetries, retryErr)
 }

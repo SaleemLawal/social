@@ -79,12 +79,17 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 
 	// send the invitation email
 	isProduction := app.config.env == "production"
-	activationURL := fmt.Sprintf("%s/authentication/activate?token=%s", app.config.frontendUrl, plainToken) // Swit
-	if err := app.mailer.Send(mailer.UserInvitationTemplate, &mailer.Email{
+	activationURL := fmt.Sprintf("%s/authentication/activate?token=%s", app.config.frontendUrl, plainToken)
+
+	email := &mailer.Email{
 		Username:      user.Username,
 		ToEmail:       user.Email,
 		ActivationURL: activationURL,
-	}, isProduction); err != nil {
+	}
+
+	err = app.mailer.Send(mailer.UserInvitationTemplate, email, isProduction)
+
+	if err != nil {
 		app.logger.Errorw("Failed to send invitation email", "error", err.Error())
 
 		// rollback user creation if email sending fails
@@ -97,6 +102,8 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		app.internalServerError(w, r, err)
 		return
 	}
+
+	app.logger.Infow("Email sent successfully")
 
 	userWithToken := &userWithToken{
 		User:  user,
