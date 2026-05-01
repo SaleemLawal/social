@@ -114,9 +114,13 @@ social/
 │   ├── api/
 │   │   ├── main.go          # Entry point, config bootstrap
 │   │   ├── api.go           # Application struct, router, server
-│   │   ├── auth.go          # Registration handler
+│   │   ├── auth.go          # Registration and token handlers
 │   │   ├── users.go         # User, follow, unfollow, activate handlers
 │   │   ├── posts.go         # Post CRUD handlers
+│   │   ├── comments.go      # Comment handlers
+│   │   ├── feeds.go         # Feed handler
+│   │   ├── health.go        # Health check handler
+│   │   ├── middleware.go    # Auth middleware (JWT, basic auth)
 │   │   ├── errors.go        # Centralised error helpers
 │   │   └── json.go          # JSON read/write helpers
 │   └── migrate/
@@ -218,6 +222,7 @@ GET    /v1/health
 
 ```
 POST   /v1/authentication/user       Register a new user (returns activation token)
+POST   /v1/authentication/token      Log in and obtain a JWT bearer token
 ```
 
 ### Users

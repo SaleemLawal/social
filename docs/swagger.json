@@ -1,17 +1,14 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a sample server Social API.",
-        "title": "Swagger Example API",
-        "termsOfService": "http://swagger.io/terms/",
+        "description": "A RESTful social networking API supporting user registration, posts, comments, following, and personalized feeds.",
+        "title": "Social API",
         "contact": {
-            "name": "API Support",
-            "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
+            "name": "Saleem Lawal",
+            "url": "https://github.com/saleemlawal/social"
         },
         "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+            "name": "MIT"
         }
     },
     "basePath": "/v1",
@@ -374,11 +371,6 @@
         },
         "/users/activate/{token}": {
             "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Activates a user account using a token",
                 "consumes": [
                     "application/json"

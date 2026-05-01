@@ -126,7 +126,6 @@ func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Reque
 //	@Failure		404		{object}	error
 //	@Failure		409		{object}	error
 //	@Failure		500		{object}	error
-//	@Security		ApiKeyAuth
 //	@Router			/users/activate/{token} [put]
 func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")

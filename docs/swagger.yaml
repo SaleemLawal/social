@@ -169,15 +169,13 @@ definitions:
     type: object
 info:
   contact:
-    email: support@swagger.io
-    name: API Support
-    url: http://www.swagger.io/support
-  description: This is a sample server Social API.
+    name: Saleem Lawal
+    url: https://github.com/saleemlawal/social
+  description: A RESTful social networking API supporting user registration, posts,
+    comments, following, and personalized feeds.
   license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: Swagger Example API
+    name: MIT
+  title: Social API
 paths:
   /authentication/token:
     post:
@@ -539,8 +537,6 @@ paths:
         "500":
           description: Internal Server Error
           schema: {}
-      security:
-      - ApiKeyAuth: []
       summary: Activate a user
       tags:
       - users

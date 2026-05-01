@@ -14,16 +14,13 @@ import (
 
 const version = "0.0.2"
 
-//	@title			Swagger Example API
-//	@description	This is a sample server Social API.
-//	@termsOfService	http://swagger.io/terms/
+//	@title			Social API
+//	@description	A RESTful social networking API supporting user registration, posts, comments, following, and personalized feeds.
 
-//	@contact.name	API Support
-//	@contact.url	http://www.swagger.io/support
-//	@contact.email	support@swagger.io
+//	@contact.name	Saleem Lawal
+//	@contact.url	https://github.com/saleemlawal/social
 
-//	@license.name	Apache 2.0
-//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+//	@license.name	MIT
 
 // @BasePath					/v1
 //
