@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/saleemlawal/social/internal/auth"
 	"github.com/saleemlawal/social/internal/db"
 	"github.com/saleemlawal/social/internal/env"
 	"github.com/saleemlawal/social/internal/mailer"
@@ -68,6 +69,18 @@ func main() {
 			},
 			exp: time.Hour * 24 * 3,
 		},
+		auth: authConfig{
+			basic: basicAuthConfig{
+				username: env.GetString("BASIC_AUTH_USERNAME", "admin"),
+				password: env.GetString("BASIC_AUTH_PASSWORD", "password"),
+			},
+			token: tokenConfig{
+				secret:   env.GetString("JWT_SECRET", "example-secret"),
+				audience: env.GetString("JWT_AUDIENCE", "social"),
+				exp:      time.Hour * 24 * 3, // 3 days
+				iss:      env.GetString("JWT_ISS", "social"),
+			},
+		},
 	}
 
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
@@ -81,12 +94,15 @@ func main() {
 
 	mailer := mailer.NewMailtrapMailer(cfg.mail.fromEmail, cfg.mail.mailtrap.username, cfg.mail.mailtrap.password)
 
+	jwtAuthenticator := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.audience, cfg.auth.token.iss)
+
 	store := store.NewStorage(db)
 	app := &application{
-		config: *cfg,
-		store:  store,
-		logger: logger,
-		mailer: mailer,
+		config:        *cfg,
+		store:         store,
+		logger:        logger,
+		mailer:        mailer,
+		authenticator: jwtAuthenticator,
 	}
 
 	mux := app.mount()

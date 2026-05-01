@@ -256,3 +256,23 @@ func (s *UserStore) delete(ctx context.Context, tx *sql.Tx, userId int64) error 
 	_, err := tx.ExecContext(ctx, query, userId)
 	return err
 }
+
+func (s *UserStore) GetByEmail(ctx context.Context, email string) (*User, error) {
+	var user = &User{}
+	query := `
+		SELECT id, username, email, password, created_at FROM users WHERE email = $1 AND activated = true
+	`
+	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
+	defer cancel()
+
+	if err := s.db.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.Password.hash, &user.CreatedAt); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return user, nil
+}

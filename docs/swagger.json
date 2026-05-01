@@ -16,6 +16,48 @@
     },
     "basePath": "/v1",
     "paths": {
+        "/authentication/token": {
+            "post": {
+                "description": "Creates a new token for the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Create a new token",
+                "parameters": [
+                    {
+                        "description": "User to register",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.createUserTokenPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
         "/authentication/user": {
             "post": {
                 "description": "Registers a new user with the provided username and email",
@@ -703,6 +745,24 @@
                 "title": {
                     "type": "string",
                     "maxLength": 255,
+                    "minLength": 3
+                }
+            }
+        },
+        "main.createUserTokenPayload": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
                     "minLength": 3
                 }
             }

@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/saleemlawal/social/docs"
+	"github.com/saleemlawal/social/internal/auth"
 	"github.com/saleemlawal/social/internal/mailer"
 	"github.com/saleemlawal/social/internal/store"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -15,10 +16,11 @@ import (
 )
 
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 
 type config struct {
@@ -33,6 +35,7 @@ type config struct {
 		exp       time.Duration
 	}
 	frontendUrl string
+	auth        authConfig
 }
 
 type sendGridConfig struct {
@@ -51,6 +54,23 @@ type dbConfig struct {
 	maxIdleTime  time.Duration
 }
 
+type authConfig struct {
+	basic basicAuthConfig
+	token tokenConfig
+}
+
+type basicAuthConfig struct {
+	username string
+	password string
+}
+
+type tokenConfig struct {
+	secret   string
+	audience string
+	exp      time.Duration
+	iss      string
+}
+
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 
@@ -62,11 +82,13 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(time.Second * 60))
 
 	r.Route("/v1", func(r chi.Router) {
-		r.Get("/health", app.healthcheckHandler)
+		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthcheckHandler)
+
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL(docsURL), //The url pointing to API definition
 		))
+
 		r.Route("/posts", func(r chi.Router) {
 			r.Post("/", app.createPostHandler)
 
@@ -96,6 +118,8 @@ func (app *application) mount() http.Handler {
 		// public routes
 		r.Route("/authentication", func(r chi.Router) {
 			r.Post("/user", app.registerUserHandler)
+
+			r.Post("/token", app.createTokenHandler)
 		})
 	})
 

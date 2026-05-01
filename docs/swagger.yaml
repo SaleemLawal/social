@@ -49,6 +49,19 @@ definitions:
         minLength: 3
         type: string
     type: object
+  main.createUserTokenPayload:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      password:
+        maxLength: 72
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    type: object
   main.registerUserRequest:
     properties:
       email:
@@ -171,6 +184,34 @@ info:
   termsOfService: http://swagger.io/terms/
   title: Swagger Example API
 paths:
+  /authentication/token:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new token for the user
+      parameters:
+      - description: User to register
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.createUserTokenPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: token
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      summary: Create a new token
+      tags:
+      - authentication
   /authentication/user:
     post:
       consumes:

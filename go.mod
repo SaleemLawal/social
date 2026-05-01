@@ -12,7 +12,7 @@ require (
 
 require (
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
-	github.com/sendgrid/sendgrid-go v3.16.1+incompatible // indirect
+	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
 	go.uber.org/multierr v1.10.0 // indirect
 )
 
@@ -31,6 +31,7 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
