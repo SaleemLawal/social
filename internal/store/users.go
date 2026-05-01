@@ -24,6 +24,8 @@ type User struct {
 	Password  password  `json:"-"`
 	CreatedAt time.Time `json:"created_at"`
 	Activated bool      `json:"activated"`
+	RoleID    int64     `json:"role_id"`
+	Role      Role      `json:"role"`
 }
 
 type Follower struct {
@@ -52,12 +54,19 @@ func (p *password) Compare(text string) error {
 
 func (s *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 	var query string = `
-		INSERT INTO users (username, password, email) VALUES($1, $2, $3) RETURNING id, created_at
+		INSERT INTO users (username, password, email, role_id)
+		VALUES($1, $2, $3, (SELECT id FROM roles WHERE name = $4)) 
+		RETURNING id, created_at
 	`
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
 	defer cancel()
 
-	err := s.db.QueryRowContext(ctx, query, user.Username, user.Password.hash, user.Email).Scan(&user.ID, &user.CreatedAt)
+	role := user.Role.Name
+	if role == "" {
+		role = "User"
+	}
+
+	err := s.db.QueryRowContext(ctx, query, user.Username, user.Password.hash, user.Email, role).Scan(&user.ID, &user.CreatedAt)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_username_key"`:
@@ -73,13 +82,16 @@ func (s *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 
 func (s *UserStore) GetById(ctx context.Context, userId int64) (*User, error) {
 	var query string = `
-		SELECT id, username, email, created_at FROM users WHERE id = $1
+		SELECT users.id, username, email, created_at, roles.* FROM users
+		JOIN roles ON users.role_id = roles.id
+		WHERE users.id = $1
 	`
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
 	defer cancel()
 
 	var user = &User{}
-	if err := s.db.QueryRowContext(ctx, query, userId).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt); err != nil {
+	if err := s.db.QueryRowContext(ctx, query, userId).Scan(
+		&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.Role.ID, &user.Role.Name, &user.Role.Level, &user.Role.Description); err != nil {
 		switch err {
 		case sql.ErrNoRows:
 			return nil, ErrRecordNotFound

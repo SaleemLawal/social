@@ -34,3 +34,8 @@ func (app *application) unauthorizedBasicAuthError(w http.ResponseWriter, r *htt
 	w.Header().Set("WWW-Authenticate", `Basic realm="Restricted", charset="UTF-8"`)
 	writeJSONError(w, http.StatusUnauthorized, "Unauthorized. Please provide valid credentials.")
 }
+
+func (app *application) forbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.logger.Warnw("Forbidden error", "method", r.Method, "path", r.URL.Path, "error", err.Error())
+	writeJSONError(w, http.StatusForbidden, "Forbidden")
+}

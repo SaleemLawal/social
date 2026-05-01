@@ -57,6 +57,9 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	user := &store.User{
 		Username: input.Username,
 		Email:    input.Email,
+		Role: store.Role{
+			Name: "User",
+		},
 	}
 
 	// hash passsword
@@ -94,23 +97,23 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		ActivationURL: activationURL,
 	}
 
-	err = app.mailer.Send(mailer.UserInvitationTemplate, email, isProduction)
+	if isProduction {
+		if err := app.mailer.Send(mailer.UserInvitationTemplate, email, isProduction); err != nil {
+			app.logger.Errorw("Failed to send invitation email", "error", err.Error())
 
-	if err != nil {
-		app.logger.Errorw("Failed to send invitation email", "error", err.Error())
+			// rollback user creation if email sending fails
+			if err := app.store.Users.Delete(r.Context(), user.ID); err != nil {
+				app.logger.Errorw("Failed to rollback user creation", "error", err.Error())
+				app.internalServerError(w, r, err)
+				return
+			}
 
-		// rollback user creation if email sending fails
-		if err := app.store.Users.Delete(r.Context(), user.ID); err != nil {
-			app.logger.Errorw("Failed to rollback user creation", "error", err.Error())
 			app.internalServerError(w, r, err)
 			return
 		}
 
-		app.internalServerError(w, r, err)
-		return
+		app.logger.Infow("Email sent successfully")
 	}
-
-	app.logger.Infow("Email sent successfully")
 
 	userWithToken := &userWithToken{
 		User:  user,

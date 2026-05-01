@@ -96,8 +96,8 @@ func (app *application) mount() http.Handler {
 			r.Route("/{postId}", func(r chi.Router) {
 				r.Use(app.postsContextMiddleware)
 				r.Get("/", app.getPostHandler)
-				r.Patch("/", app.updatePostHandler)
-				r.Delete("/", app.deletePostHandler)
+				r.Patch("/", app.checkPostOwnershipMiddleware("Moderator", app.updatePostHandler))
+				r.Delete("/", app.checkPostOwnershipMiddleware("Admin", app.deletePostHandler))
 				r.Post("/comments", app.createCommentHandler)
 			})
 		})
