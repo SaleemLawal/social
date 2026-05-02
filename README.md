@@ -12,7 +12,7 @@
 ---
 
 ```
-  [ REST API ]  ·  [ Go 1.25 ]  ·  [ PostgreSQL 17 ]  ·  [ Docker ]  ·  [ Swagger ]  ·  [ Mailtrap ]
+  [ REST API ]  ·  [ Go 1.25 ]  ·  [ PostgreSQL 17 ]  ·  [ Redis 7 ]  ·  [ Docker ]  ·  [ Swagger ]  ·  [ Mailtrap ]
 ```
 
 ---
@@ -35,7 +35,7 @@
 
 ## Overview
 
-**Social API** is a RESTful backend service built in Go that powers a social networking platform. It supports user registration with email-based account activation, post creation, commenting, social following, and a personalized feed — all served through a clean, versioned HTTP API.
+**Social API** is a RESTful backend service built in Go that powers a social networking platform. It supports user registration with email-based account activation, post creation (with comments returned on fetch), commenting, social following, a personalized feed, optional **Redis-backed caching** for authenticated user lookups, and **role-based** rules for editing and deleting posts — all served through a clean, versioned HTTP API.
 
 ---
 
@@ -52,6 +52,7 @@
 │   Middleware Stack                                      │
 │   ─────────────────────────────────────                 │
 │   Logger · RequestID · RealIP · Recoverer · Timeout     │
+│   JWT (user in context) · RBAC on post PATCH / DELETE   │
 │                                                         │
 │   Routes                                                │
 │   ─────────────────────────────────────                 │
@@ -62,12 +63,14 @@
 ┌────────────────────────▼────────────────────────────────┐
 │                  Store Layer (internal/store)            │
 │                                                         │
-│   UserStore · PostStore · CommentStore · FollowerStore  │
-└────────────────────────┬────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────┐
-│                   PostgreSQL 17                          │
-└─────────────────────────────────────────────────────────┘
+│   UserStore · PostStore · CommentStore · RoleStore      │
+└────────────┬───────────────────────────┬────────────────┘
+             │                           │
+             │  optional                 │
+┌────────────▼──────────────┐  ┌──────────▼──────────────────┐
+│  Redis cache (users)      │  │   PostgreSQL 17            │
+│  (internal/store/cache)   │  │                            │
+└───────────────────────────┘  └────────────────────────────┘
 ```
 
 ---
@@ -78,10 +81,10 @@
   USERS                          POSTS                         SOCIAL
   ─────────────────────────      ────────────────────────      ─────────────────────────
   + Register with token          + Create post                 + Follow a user
-  + Email activation flow        + Get post by ID              + Unfollow a user
-  + Get user profile             + Update post (PATCH)         + Personalized feed
-                                 + Delete post
-                                 + Add comment to post
+  + Email activation flow        + Get post (w/ comments)      + Unfollow a user
+  + Profile includes role        + Update post (owner / Mod+)  + Personalized feed
+  + Redis user cache (JWT)       + Delete post (owner / Admin)+ Roles: User / Mod / Admin
+                                 + Add comment to a post
 ```
 
 ---
@@ -93,6 +96,7 @@
 | Language       | Go 1.25                                 |
 | Router         | chi v5                                  |
 | Database       | PostgreSQL 17 (Alpine)                  |
+| Cache          | Redis 7 + go-redis v9 (user lookup)     |
 | Migrations     | golang-migrate v4                       |
 | Validation     | go-playground/validator v10             |
 | Documentation  | Swagger (swaggo/swag + http-swagger)    |
@@ -101,6 +105,7 @@
 | Containerisation | Docker + Docker Compose               |
 | Password Hashing | bcrypt                                |
 | Token Hashing  | SHA-256                                 |
+| Auth           | JWT (golang-jwt) · Basic (health only)  |
 | Email (dev)    | Mailtrap (SMTP)                         |
 | Email (prod)   | SendGrid (pluggable via interface)      |
 
@@ -128,10 +133,15 @@ social/
 │       └── seed/            # Database seed data
 ├── internal/
 │   ├── store/
-│   │   ├── storage.go       # Storage interface
+│   │   ├── storage.go       # Storage interface (incl. Roles)
 │   │   ├── users.go         # User & follower DB operations
 │   │   ├── posts.go         # Post DB operations
-│   │   └── comments.go      # Comment DB operations
+│   │   ├── comments.go      # Comment DB operations
+│   │   ├── roles.go         # Role lookup by name (RBAC)
+│   │   └── cache/           # Redis cache (users)
+│   │       ├── redis.go     # Client factory
+│   │       ├── storage.go   # Cache storage facade
+│   │       └── users.go     # JSON get/set with TTL
 │   ├── mailer/
 │   │   ├── mailer.go        # Client interface + Email struct + embedded FS
 │   │   ├── sendgrid.go      # SendGrid implementation
@@ -142,9 +152,9 @@ social/
 │   └── env/                 # Environment variable helpers
 ├── docs/                    # Auto-generated Swagger docs
 ├── scripts/                 # DB init scripts
-├── compose.yml              # Production-like Compose setup
-├── compose.override.yml     # Dev overrides (hot reload, volume mounts)
-├── Dockerfile               # Multi-stage: builder / dev / runtime
+├── compose.yml              # API, DB, migrate, Redis, Redis Commander
+├── compose.override.yml     # Dev overrides (hot reload, Go module caches)
+├── Dockerfile               # Multi-stage: builder / dev / runtime (non-root users)
 └── Makefile
 ```
 
@@ -175,6 +185,8 @@ make run
 The API will be available at `http://localhost:8080/v1`.
 Swagger UI is available at `http://localhost:8080/v1/swagger/index.html`.
 
+Compose also starts **Redis** (for caching users loaded during JWT authentication) and **Redis Commander** at `http://localhost:8081` for inspecting keys while developing.
+
 ---
 
 ## Environment Variables
@@ -195,6 +207,21 @@ DB_MAX_OPEN_CONNS=30
 DB_MAX_IDLE_CONNS=30
 DB_MAX_IDLE_TIME=30
 
+# Redis (user cache for auth middleware; Compose sets REDIS_ADDR for the API service)
+REDIS_ADDR=localhost:6379
+REDIS_PW=
+REDIS_DB=0
+REDIS_ENABLED=true
+
+# JWT (login / bearer tokens)
+JWT_SECRET=change-me
+JWT_AUDIENCE=social
+JWT_ISS=social
+
+# Basic auth — required for GET /v1/health only
+BASIC_AUTH_USERNAME=admin
+BASIC_AUTH_PASSWORD=password
+
 # Email sender address
 FROM_EMAIL=you@example.com
 
@@ -213,6 +240,8 @@ SENDGRID_API_KEY=
 All routes are prefixed with `/v1`. Full interactive documentation is available via Swagger at `/v1/swagger/index.html`.
 
 ### Health
+
+Protected with **HTTP Basic** credentials (`BASIC_AUTH_USERNAME` / `BASIC_AUTH_PASSWORD`).
 
 ```
 GET    /v1/health
@@ -237,11 +266,15 @@ GET    /v1/users/feeds               Get the personalized feed
 
 ### Posts
 
+`GET /v1/posts/{postId}` returns the post with a `comments` array populated from the database.
+
+`PATCH` and `DELETE` use **ownership or role precedence**: the author may always act on their own post. Otherwise, `PATCH` requires at least the **Moderator** role level and `DELETE` requires at least **Admin** (roles are ordered User → Moderator → Admin).
+
 ```
 POST   /v1/posts                     Create a post
-GET    /v1/posts/{postId}            Get a post by ID
-PATCH  /v1/posts/{postId}            Update a post
-DELETE /v1/posts/{postId}            Delete a post
+GET    /v1/posts/{postId}            Get a post by ID (includes comments)
+PATCH  /v1/posts/{postId}            Update a post (owner or Moderator+)
+DELETE /v1/posts/{postId}            Delete a post (owner or Admin)
 POST   /v1/posts/{postId}/comments   Add a comment to a post
 ```
 
@@ -298,6 +331,8 @@ Migrations live in `cmd/migrate/migrations/` and are named sequentially:
 000010  add activated column to users
 000011  alter user invitations
 000012  rename followers.user_id -> followed_id
+000013  add roles table (User, Moderator, Admin)
+000014  add users.role_id (FK to roles)
 ```
 
 ```bash
@@ -327,6 +362,12 @@ The project uses a multi-stage Dockerfile:
 | `runtime` | Minimal Alpine image, runs the pre-built binary               |
 
 The `compose.override.yml` activates the `dev` target automatically and mounts the source directory into the container so Air can detect changes and rebuild. Air runs `make swagger` as a `pre_cmd` before each reload to keep Swagger docs in sync.
+
+The dev and runtime images run the app as a **non-root** user (`saleem` in dev, `app` in production).
+
+### Redis and user caching
+
+When `REDIS_ENABLED` is `true` (default), successful user lookups performed while validating JWTs are cached in Redis for a short TTL (`internal/store/cache/users.go`). Set `REDIS_ENABLED=false` to read users only from PostgreSQL (for example when Redis is not available). With Docker Compose, the API receives `REDIS_ADDR=redis:6379` automatically.
 
 ### Running the Debugger Locally
 
