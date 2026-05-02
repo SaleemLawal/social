@@ -19,3 +19,11 @@ func GetInt(key string, fallback int) int {
 	}
 	return val
 }
+
+func GetBool(key string, fallback bool) bool {
+	val, err := strconv.ParseBool(os.Getenv(key))
+	if err != nil {
+		return fallback
+	}
+	return val
+}

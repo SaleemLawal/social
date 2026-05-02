@@ -4,11 +4,13 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/saleemlawal/social/internal/auth"
 	"github.com/saleemlawal/social/internal/db"
 	"github.com/saleemlawal/social/internal/env"
 	"github.com/saleemlawal/social/internal/mailer"
 	"github.com/saleemlawal/social/internal/store"
+	"github.com/saleemlawal/social/internal/store/cache"
 	"go.uber.org/zap"
 )
 
@@ -53,6 +55,12 @@ func main() {
 			maxIdleConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleTime:  time.Duration(env.GetInt("DB_MAX_OPEN_CONNS", 30)),
 		},
+		redisCfg: redisConfig{
+			addr:    env.GetString("REDIS_ADDR", "localhost:6379"),
+			pw:      env.GetString("REDIS_PW", ""),
+			db:      env.GetInt("REDIS_DB", 0),
+			enabled: env.GetBool("REDIS_ENABLED", true),
+		},
 		mail: struct {
 			fromEmail string
 			sendGrid  sendGridConfig
@@ -92,6 +100,14 @@ func main() {
 	defer db.Close()
 	logger.Info("database connection pool established")
 
+	// redis
+	var redisClient *redis.Client = nil
+	if cfg.redisCfg.enabled {
+		redisClient = cache.NewRedisClient(cfg.redisCfg.addr, cfg.redisCfg.pw, cfg.redisCfg.db)
+		logger.Info("redis client established")
+		defer redisClient.Close()
+	}
+
 	mailer := mailer.NewMailtrapMailer(cfg.mail.fromEmail, cfg.mail.mailtrap.username, cfg.mail.mailtrap.password)
 
 	jwtAuthenticator := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.audience, cfg.auth.token.iss)
@@ -103,6 +119,7 @@ func main() {
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
+		cacheStorage:  cache.NewRedisStorage(redisClient),
 	}
 
 	mux := app.mount()

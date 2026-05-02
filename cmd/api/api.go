@@ -13,11 +13,14 @@ import (
 	"github.com/saleemlawal/social/internal/store"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
+
+	"github.com/saleemlawal/social/internal/store/cache"
 )
 
 type application struct {
 	config        config
 	store         store.Storage
+	cacheStorage  cache.Storage
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
@@ -36,6 +39,7 @@ type config struct {
 	}
 	frontendUrl string
 	auth        authConfig
+	redisCfg    redisConfig
 }
 
 type sendGridConfig struct {
@@ -69,6 +73,13 @@ type tokenConfig struct {
 	audience string
 	exp      time.Duration
 	iss      string
+}
+
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 
 func (app *application) mount() http.Handler {
@@ -107,6 +118,7 @@ func (app *application) mount() http.Handler {
 
 			r.Route("/{id}", func(r chi.Router) {
 				r.Use(app.AuthTokenMiddleware)
+
 				r.Get("/", app.getUserHandler)
 				r.Put("/follow", app.followUserHandler)
 				r.Put("/unfollow", app.unfollowUserHandler)
