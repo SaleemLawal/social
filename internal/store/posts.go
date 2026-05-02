@@ -179,6 +179,7 @@ func (s *PostStore) GetFeeds(ctx context.Context, userID int64, fq *PaginationFe
 		ORDER BY p.created_at %s
 		LIMIT $2 OFFSET $3
 	`, sinceClause, untilClause, fq.Sort)
+
 	ctx, cancel := context.WithTimeout(ctx, QUERY_TIMEOUT_DURATION)
 	defer cancel()
 
