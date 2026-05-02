@@ -5,11 +5,8 @@ services:
       target: dev
     volumes:
       - ./:/app
-      - /app/bin
-      - /app/tmp
-      - go-mod-cache:/go/pkg/mod
-      - go-build-cache:/root/.cache/go-build
-
-volumes:
-  go-mod-cache:
-  go-build-cache:
+      - ./.docker/go-mod:/gomodcache
+      - ./.docker/go-build:/gocache
+    environment:
+      GOMODCACHE: /gomodcache
+      GOCACHE: /gocache
