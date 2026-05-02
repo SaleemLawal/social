@@ -35,7 +35,7 @@ func (app *application) unauthorizedBasicAuthError(w http.ResponseWriter, r *htt
 	writeJSONError(w, http.StatusUnauthorized, "Unauthorized. Please provide valid credentials.")
 }
 
-func (app *application) forbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
-	app.logger.Warnw("Forbidden error", "method", r.Method, "path", r.URL.Path, "error", err.Error())
+func (app *application) forbiddenResponse(w http.ResponseWriter, r *http.Request) {
+	app.logger.Warnw("Forbidden error", "method", r.Method, "path", r.URL.Path, "error")
 	writeJSONError(w, http.StatusForbidden, "Forbidden")
 }

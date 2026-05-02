@@ -117,10 +117,11 @@ func (app *application) checkPostOwnershipMiddleware(requiredRole string, next h
 		allowed, err := app.checkRolePrecedence(r.Context(), user, requiredRole)
 		if err != nil {
 			app.internalServerError(w, r, err)
+			return
 		}
 
 		if !allowed {
-			app.forbiddenResponse(w, r, err)
+			app.forbiddenResponse(w, r)
 			return
 		}
 
