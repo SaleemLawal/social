@@ -41,3 +41,8 @@ format:
 swagger:
 	@echo "Generating swagger documentation..."
 	@swag init -g ./api/main.go -d cmd,internal && swag fmt 
+
+.PHONY: test
+test:
+	@echo "Running tests..."
+	@go test -v ./...
